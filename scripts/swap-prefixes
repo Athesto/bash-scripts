@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+
+##
+# NAME
+#   swap-prefixes - this script swap the prefixes of 2 files
+#
+# SYNOPSIS
+#   swap-prefixes -h|--help
+#   swap-prefixes [-cd] <file1> <file2>
+#
+# INFO
+#   url: https://github.com/Athesto/bash-scripts/scripts/swap-prefixes
+#
+# DESCRIPTION
+#   swap-prefixes swaps the prefixes of two files with the format
+#   [0-9][0-9]-<filename>
+#
+# OPTIONS
+#   -c
+#       The program asks for confirmation
+#
+#   -d|--dry-run 
+#       It prevents to modify the files
+#
+#   -h|--help
+#       It returns the documentation 
+#
+# EXAMPLES
+#   swap-prefixes 00-file1 99-file2
+#       the output will be 99-file1 and 00-file2
+#
+# AUTHOR
+#   Gustavo Mejía: gamez[dot]live[at]gmail[dot]com
+
+# GLOBAL variables
+CMD_NAME="swap-prefixes"
+
+function main() {  # v1.0
+    FORMATSTRING="cdh"
+
+    FORMATSTRING_WITH_LONG_OPTS="${FORMATSTRING}-:"
+    while getopts "${FORMATSTRING_WITH_LONG_OPTS}" optchar; do
+        case "${optchar}" in
+            -)
+                case ${OPTARG} in
+                    help) help_command;  exit;;
+                    dry-run) DRYRUN=1;;
+                    *) echo "invalid long command" ;;
+                esac
+                ;;
+            h) help_command; exit 0;;
+            c) CONFIRM=1;;
+            d) DRYRUN=1;;
+            *)
+        esac
+    done
+    shift $(( OPTIND - 1 ))
+    swapNames "$@"
+}
+
+function help_command(){ # v1.0
+    sed -e '/^##$/,/^$/ !d' -e 's/^.\{1,2\}//' "$0"
+}
+
+
+function swapNames() {
+    [[ ! $# -eq 2 ]] && {
+        echo "the script only recive 2 argmuents but recived ${#}";
+        echo;
+        echo "use --help for more help";
+        echo "      ${CMD_NAME} --help"
+        echo
+        exit 1;
+    }
+
+    FILE1=$1
+    FILE2=$2
+
+    [[ ! $FILE1 =~ [0-9][0-9]-.* ]] && { echo "$FILE1 doesn't have the pattern not pattern found"; exit 1; }
+    [[ ! $FILE2 =~ [0-9][0-9]-.* ]] && { echo "$FILE2 doesn't have the pattern not pattern found"; exit 1; }
+
+    PREFIX1="$(echo "$FILE1" | cut -c -2)"
+    PREFIX2="$(echo "$FILE2" | cut -c -2)"
+
+    SUFFIX1="$(echo "$FILE1" | cut -c 4-)"
+    SUFFIX2="$(echo "$FILE2" | cut -c 4-)"
+
+    [[ $CONFIRM ]] && { 
+        echo;
+        echo "$FILE1 will move to ${PREFIX2}-${SUFFIX1}";
+        echo "$FILE2 will move to ${PREFIX1}-${SUFFIX2}";
+        echo;
+        validate; 
+    }
+
+    [[ $DRYRUN ]] && { echo "dry-run option enabled and command no executed"; exit 0; }
+
+    mv "$FILE1" "${PREFIX2}-${SUFFIX1}"
+    mv "$FILE2" "${PREFIX1}-${SUFFIX2}"
+}
+
+
+function validate() {
+    while true; do
+        read -rp "OK? (y/N): " val
+        echo "$val"
+        case "$val" in
+            [Yy]*) break;;
+            [Nn]*) exit 0;;
+            *) echo "Select a valid answer (y/N)";;
+        esac
+    done
+}
+
+main "$@"
